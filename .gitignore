@@ -1,0 +1,11 @@
+.venv/
+.runtime/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.csv
+*.parquet
+*.sqlite*
+*.log
+coverage/
