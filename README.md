@@ -6,7 +6,7 @@ A small personal US stock research dashboard using **your local Norgate Data sub
 
 While the app is running, open **http://127.0.0.1:8765**. Enter symbols separated by commas, choose dates, and select **Compare stocks**. The 1Y, 3Y, and 5Y buttons set dates; select Compare stocks to apply them. Switch the chart between Growth and Drawdown.
 
-On this computer the environment is already installed. From the project folder:
+For an existing local installation, run from the project folder:
 
 ```powershell
 .\start.ps1
@@ -14,9 +14,11 @@ On this computer the environment is already installed. From the project folder:
 
 Leave that terminal running; Ctrl+C stops the app. If PowerShell blocks the script, run `.\.venv\Scripts\python.exe app.py` directly. If port 8765 is occupied, use `.\.venv\Scripts\python.exe app.py --port 8766` and open that port instead.
 
-On another Windows computer, install 64-bit Python 3.13 or later, install and sign into Norgate Data Updater with an active US equities subscription, finish its data update, then run:
+For a new installation, install 64-bit Python 3.13 or later and Git. Install and sign into Norgate Data Updater with your own active US equities subscription and finish its data update. Then download and start the project:
 
 ```powershell
+git clone https://github.com/Abdulrahman-S-Asiri/stock-research-desk.git
+cd stock-research-desk
 .\setup.ps1
 .\start.ps1
 ```
@@ -65,4 +67,4 @@ Tests use small synthetic fixtures, not licensed data. CI can run the Python sui
 
 The project has four simple parts: `provider.py` reads Norgate, `analytics.py` computes metrics, `app.py` serves the local interface, and `static/` contains the browser UI. Separate agents researched the API, implemented/tested analytics, and independently reviewed the project. Relevant coding and browser skills were used; unrelated plugins were deliberately excluded.
 
-This is private personal source with no open-source license granted. Runtime files, dependencies, logs, credentials, and market-data exports are excluded from Git. Development verification logs are kept outside the repository.
+The source is publicly viewable; no open-source license is granted. Norgate data and subscription access are not included. Runtime files, dependencies, logs, credentials, and market-data exports are excluded from Git. Development verification logs are kept outside the repository.
