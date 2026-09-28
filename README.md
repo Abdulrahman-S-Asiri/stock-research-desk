@@ -1,70 +1,405 @@
-# Stock Research Desk
+# Stock Research Desk — مختبر تعليمي لتحليل الأسهم
 
-A small personal US stock research dashboard using **your local Norgate Data subscription**. Compare up to six symbols with a benchmark ETF over a chosen period. Inspect dividend-adjusted growth, total return, excess return, annualized volatility, and maximum drawdown.
+**مشروع تعليمي يشرح كيف نحول الأسعار التاريخية إلى مقارنة مفهومة بين العائد والمخاطرة.** تكتب رموز الأسهم وتختار فترة زمنية ومرجعًا للمقارنة، فتقرأ لوحة محلية بيانات Norgate وتعرض النمو والعائد والتقلب والتراجع.
 
-## Open it
+السؤال الذي يساعدك المشروع على دراسته: **كيف كان أداء هذه الأسهم خلال الفترة نفسها، وكم تذبذبت وتراجعت أثناء الطريق؟**
 
-While the app is running, open **http://127.0.0.1:8765**. Enter symbols separated by commas, choose dates, and select **Compare stocks**. The 1Y, 3Y, and 5Y buttons set dates; select Compare stocks to apply them. Switch the chart between Growth and Drawdown.
+الجمهور المستهدف: متعلم Python أو تحليل البيانات المالية الذي يريد مشروعًا صغيرًا يمكن فهمه من مصدر البيانات حتى الرسم. الواجهة الحالية بالإنجليزية؛ هذا الدليل يشرح خطواتها ومصطلحاتها بالعربية.
 
-For an existing local installation, run from the project folder:
+> المستوى الحالي للأدلة: **مقارنة تاريخية وصفية**. لا توجد استراتيجية تداول أو أوامر شراء وبيع أو نموذج يتنبأ بالسعر. جميع أمثلة الدرس التعليمي افتراضية، ولا تمثل بيانات سوق فعلية.
 
-```powershell
-.\start.ps1
-```
+## محتويات الدليل
 
-Leave that terminal running; Ctrl+C stops the app. If PowerShell blocks the script, run `.\.venv\Scripts\python.exe app.py` directly. If port 8765 is occupied, use `.\.venv\Scripts\python.exe app.py --port 8766` and open that port instead.
+- [الفكرة وما ستتعلمه](#idea)
+- [ابدأ بالتجربة التعليمية دون Norgate](#lesson)
+- [تشغيل اللوحة ببيانات Norgate](#setup)
+- [قراءة الواجهة](#interface)
+- [كيف تنتقل البيانات؟](#architecture)
+- [شرح الحسابات بمثال](#math)
+- [لماذا نراجع جودة البيانات؟](#quality)
+- [خريطة الملفات وترتيب قراءتها](#files)
+- [تمارين مع نتائج متوقعة](#exercises)
+- [الاختبارات وحدود الاستنتاج](#validation)
+- [حل المشكلات والخصوصية](#support)
 
-For a new installation, install 64-bit Python 3.13 or later and Git. Install and sign into Norgate Data Updater with your own active US equities subscription and finish its data update. Then download and start the project:
+<a id="idea"></a>
+## 1. فكرة المشروع وما ستتعلمه
+
+ارتفاع السعر وحده لا يصف التجربة كاملة: قد يرتفع سهم خلال سنة، لكنه يمر بانخفاض كبير في منتصفها. كما أن مقارنة سهم خلال شهر بآخر خلال سنة تعطي انطباعًا مضللًا.
+
+لذلك يجمع المشروع **مقارنة على تواريخ مشتركة**، ورسمًا يبدأ من قيمة موحدة، ومقاييس للعائد والمخاطرة. يمكنك مقارنة سهم إلى ستة أسهم، إضافة إلى رمز مرجعي مثل `SPY`. الرموز الافتراضية في الواجهة أمثلة للاستخدام وليست ترشيحات استثمارية.
+
+| ما ستتعلمه | تطبيقه داخل المشروع |
+|---|---|
+| فصل جلب البيانات عن حسابها | قارئ Norgate في `provider.py`، والحسابات في `analytics.py` |
+| التعامل مع التواريخ والقيم غير الصالحة | رفض التاريخ المكرر والسعر غير الموجب أو غير المحدود |
+| بناء مقارنة قابلة للفهم | استخدام الفترة المشتركة وبدء كل سلسلة من 100 |
+| فهم العائد والمخاطرة | حساب العائد والتقلب والتراجع ومقارنة المرجع |
+| ربط Python بالمتصفح | طلب محلي يعيد JSON ثم ترسمه JavaScript |
+| التحقق من الحسابات | اختبارات بأرقام صغيرة يمكن حلها يدويًا |
+| توثيق حدود النتيجة | إظهار تحذيرات نقص التاريخ والعينة القصيرة |
+
+**معيار النجاح التعليمي:** تستطيع تفسير رقم في الجدول، وتتبع مصدره في الكود، والتحقق منه بمثال صغير، وذكر ما لا يخبرك به.
+
+<a id="lesson"></a>
+## 2. ابدأ هنا: تجربة تعليمية دون اشتراك Norgate
+
+هذا المسار يحتاج Python وGit فقط. استخدم Python 3.13، وهو الإصدار الذي تُشغّل عليه اختبارات المشروع. لا تحتاج إلى تثبيت مكتبات إضافية لتشغيل هذا الدرس.
+
+افتح الطرفية ونفّذ:
 
 ```powershell
 git clone https://github.com/Abdulrahman-S-Asiri/stock-research-desk.git
 cd stock-research-desk
+python -m examples.learn_metrics
+```
+
+إذا سبق تنزيل المشروع، انتقل إلى مجلده وشغّل الأمر الأخير فقط.
+
+يستخدم [الدرس العملي](examples/learn_metrics.py) محرك الحسابات الحقيقي مع الأسعار **الافتراضية** التالية:
+
+| التاريخ | LESSON_STOCK | LESSON_BENCH |
+|---|---:|---:|
+| 2026-01-05 | 100 | 100 |
+| 2026-01-06 | 110 | 101 |
+| 2026-01-07 | 99 | 102 |
+
+ستظهر للسهم التعليمي هذه النتائج:
+
+```text
+Symbol: LESSON_STOCK
+Total return: -1.00%
+Annualized volatility: 224.50%
+Maximum drawdown: -10.00%
+Excess return: -3.00 pp
+Growth of 100: [100.0, 110.0, 99.0]
+```
+
+ستظهر أيضًا نتيجة المرجع وتحذير قِصر العينة. التقلب المرتفع هنا ناتج عن حركة يومية كبيرة وعينة من عائدين فقط؛ هو توضيح لطريقة الحساب وليس تقديرًا موثوقًا لمخاطر سهم.
+
+**الفصل بين التعليم والبيانات الفعلية:** هذا الدرس مستقل عن لوحة المتصفح. اللوحة لا تستبدل بيانات Norgate بأرقام افتراضية عند فشل الاتصال.
+
+<a id="setup"></a>
+## 3. تشغيل اللوحة ببيانات Norgate
+
+### المتطلبات
+
+- Windows مع Python 3.13 بإصدار 64-bit وGit.
+- اشتراكك الخاص في Norgate الذي يتيح بيانات الأسهم الأمريكية.
+- تثبيت Norgate Data Updater وتشغيله وإكمال تحديث البيانات.
+- اتصال إنترنت لتنزيل المصدر والمكتبات وتحديث Norgate عند الحاجة.
+
+واجهة Norgate المستخدمة هنا تعتمد على برنامج التحديث المحلي. راجع [المتطلبات الرسمية للحزمة](https://pypi.org/project/norgatedata/#requirements) عند إعداد جهاز جديد.
+
+### خطوات التشغيل
+
+إذا لم تنزّل المشروع، استخدم أمرَي `git clone` و`cd` في القسم السابق. من جذر المشروع داخل PowerShell:
+
+```powershell
 .\setup.ps1
 .\start.ps1
 ```
 
-Dependency versions are pinned in `requirements.lock.txt`. No API key or paid AI service is needed. The app reads the local database; it does not trigger a Norgate data download. Use Norgate Data Updater to keep data current.
+| الأمر | ماذا يفعل؟ |
+|---|---|
+| `setup.ps1` | ينشئ بيئة Python معزولة في `.venv` ويثبت الإصدارات المحددة في ملف الاعتماديات |
+| `start.ps1` | يشغّل خادم Python المحلي الذي يخدم الواجهة ويقرأ البيانات |
+| `Ctrl+C` | يوقف الخادم من الطرفية التي شغّلته |
 
-## What the numbers mean
+افتح [اللوحة المحلية](http://127.0.0.1:8765) واترك الطرفية مفتوحة أثناء استخدامها. العنوان `127.0.0.1` يشير إلى جهازك؛ نشر المستودع على GitHub لا يشغّل اللوحة على الإنترنت.
 
-- **Total return:** last adjusted close / first adjusted close − 1.
-- **Growth of 100:** adjusted close / first adjusted close × 100.
-- **Excess return:** stock total return minus benchmark total return, shown in percentage points.
-- **Volatility:** sample standard deviation of daily percentage returns × √252. This is historical variability, not a prediction.
-- **Drawdown:** adjusted close / running maximum adjusted close − 1. Maximum drawdown is the worst observation within the displayed window; it is not an all-time maximum drawdown.
+إذا منع PowerShell تشغيل ملفات السكربت، استخدم الأوامر المباشرة دون تغيير سياسة النظام:
 
-All symbols use the intersection of observed dates. There is no forward fill. An internal missing benchmark session in a stock's data causes an error rather than silently treating a multi-session change as a daily return. The benchmark is also checked against other symbols' observed dates within the common window. Later listings and earlier endings shorten the common period and generate alignment notes. There is no independent exchange calendar; sessions absent from every selected series cannot be detected this way.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.lock.txt
+.\.venv\Scripts\python.exe app.py
+```
 
-Data is explicitly requested with Norgate `TOTALRETURN` adjustment and `PaddingType.NONE`, using daily observations. Actual first and last dates are displayed. A last date more than seven calendar days before the requested end generates a warning; this is a simple gap heuristic, not a full exchange-calendar freshness check. Fewer than 60 daily returns also generates a warning.
+إذا كان المنفذ مشغولًا:
 
-## Evidence level and limits
+```powershell
+.\.venv\Scripts\python.exe app.py --port 8766
+```
 
-**Historical comparison**, not a strategy backtest, paper result, live result, trade recommendation, or portfolio simulation. The app excludes costs, slippage, taxes, and execution assumptions because it places no simulated or live orders. It has no broker connection. Today's chosen watchlist can introduce selection and survivorship bias. Delisted Norgate symbols can be entered if your subscription includes them, but there is no historical index-membership universe. No claim of profitability or unbiased strategy validation is made.
+ثم افتح [المنفذ البديل](http://127.0.0.1:8766). يحتاج التشغيل الفعلي إلى البيانات المتاحة في اشتراكك؛ طلب خمس سنوات لا يضمن أن خمس سنوات موجودة. التطبيق يقرأ قاعدة البيانات المحلية ولا يبدأ تنزيل تحديث Norgate بنفسه.
 
-Raw adjusted price levels are not current tradable quotes. This is end-of-day research. Symbols with insufficient shared history cannot be compared. Unknown symbols, missing subscriptions, and unavailable data produce explicit errors; no synthetic or alternate-provider prices are substituted.
+<a id="interface"></a>
+## 4. جولة داخل الواجهة
 
-## Local data and licensing
+1. أدخل رموزًا مفصولة بفواصل في **Stocks to compare**، مثل `AAPL, MSFT`.
+2. اختر **Benchmark ETF**؛ الرمز الافتراضي هو `SPY`. المرجع أداة للمقارنة وليس توصية بشرائه.
+3. حدّد **From** و**To**، أو اضغط **1Y / 3Y / 5Y** لتعبئة التواريخ.
+4. اضغط **Compare stocks** لتطبيق الاختيارات. أزرار المدة وحدها لا تنفذ المقارنة.
+5. اقرأ التواريخ الفعلية وعدد المشاهدات أعلى النتائج قبل تفسير الأرقام.
+6. بدّل بين **Growth** و**Drawdown**، ثم راجع جدول **Performance & risk** و**Data notes**.
 
-The server binds only to `127.0.0.1`, allows only its local hosts/origins, and exposes a fixed list of public assets. No external chart services, fonts, analytics, or cloud processing are used. API responses are marked `no-store`; the app does not save price rows to files or browser storage. Norgate's own local files remain governed by its license.
+| المصطلح في الواجهة | كيف تقرؤه؟ |
+|---|---|
+| Growth of 100 | قيمة معيارية تبدأ من 100 لتسهيل مقارنة السلاسل |
+| Total return | التغير من أول إغلاق معدل إلى آخر إغلاق معدل |
+| vs. benchmark | فرق العائد عن المرجع بالنقاط المئوية |
+| Annualized volatility | مقدار تشتت العوائد اليومية بعد تحويله إلى مقياس سنوي |
+| Max. drawdown | أشد هبوط من قمة سابقة داخل الفترة المعروضة |
+| Observations | عدد الأسعار اليومية المشتركة؛ عدد العوائد أقل بواحد |
 
-Do not expose this server to the internet or upload licensed market data. Norgate permits personal research and restricts content redistribution; consult your current agreement, including data retention requirements on subscription expiry. The app is local because Norgate's Python integration reads the Windows updater database.
+بطاقة أعلى عائد وأعمق تراجع تختاران من الأسهم دون المرجع عند وجود أسهم أخرى. المرجع يظهر دائمًا في الرسم والجدول. تغيير المدخلات يخفي النتائج السابقة حتى تنفذ مقارنة جديدة.
 
-Primary references checked during development:
+<a id="architecture"></a>
+## 5. كيف تنتقل البيانات؟
 
-- [Norgate's Python package and API](https://pypi.org/project/norgatedata/)
-- [Norgate FAQ](https://norgatedata.com/faq.php)
-- [Norgate EULA](https://norgatedata.com/subscribe/eula.php)
-- [Adjustment methods](https://norgatedata.com/data-package-faq.php)
+```mermaid
+flowchart LR
+    A["اختيار الرموز والتواريخ في المتصفح"] --> B["app.py: التحقق من الطلب"]
+    B --> C["provider.py: قراءة Norgate محليًا"]
+    C --> D["analytics.py: مراجعة البيانات والحساب"]
+    D --> E["استجابة JSON"]
+    E --> F["static/app.js: الجدول والرسوم"]
+```
 
-## Verify or develop
+عند الضغط على زر المقارنة يرسل المتصفح طلبًا إلى `/api/analyze`. يفحص الخادم الرموز والتواريخ، ثم يطلب من Norgate أسعار الإغلاق اليومية المعدلة.
+
+إعداد `TOTALRETURN` يختار تعديل الأسعار للأحداث الرأسمالية والتوزيعات. وإعداد `PaddingType.NONE` يطلب عدم إضافة أسعار مكررة للأيام التي لا يوجد لها سجل. التفاصيل لدى [Norgate عن طرق التعديل](https://norgatedata.com/data-package-faq.php). لا ينبغي تفسير الإغلاق التاريخي المعدل على أنه سعر تنفيذ خام.
+
+يحوّل القارئ النتيجة إلى قائمة بسيطة لكل رمز: `date` و`close`. محرك الحسابات لا يعرف شيئًا عن Norgate أو المتصفح؛ يأخذ هذه القوائم ويعيد المقاييس. لهذا نستطيع تعليمه واختباره بالأرقام الافتراضية نفسها.
+
+**لماذا هذا الفصل؟** إذا وجدت خطأ في معادلة، يمكنك اختباره في `analytics.py` دون تشغيل المتصفح أو الاتصال بمصدر البيانات. وإذا تغيرت طريقة قراءة Norgate، يبقى منطق الحساب منفصلًا عنها.
+
+<a id="math"></a>
+## 6. شرح الحسابات خطوة بخطوة
+
+نستخدم المثال الافتراضي: أسعار السهم `100 → 110 → 99`، وأسعار المرجع `100 → 101 → 102`.
+
+داخل Python وJSON تُخزّن العوائد ككسور؛ مثلًا `-0.01` يعني `-1%`. الواجهة تضربها في 100 للعرض.
+
+### العائد الكلي — Total return
+
+```text
+total_return = last_close / first_close - 1
+             = 99 / 100 - 1
+             = -0.01 = -1%
+```
+
+الربح اليومي الأول هو `+10%`، والثاني `-10%`. جمعهما يعطي صفرًا، لكن تركيب العائدين يعطي:
+
+```text
+(1 + 0.10) × (1 - 0.10) - 1 = -1%
+```
+
+**الدرس:** النسبة الثانية تُحسب على قاعدة مختلفة؛ جمع العوائد اليومية ليس العائد الكلي.
+
+### النمو من 100 — Growth of 100
+
+```text
+growth[t] = close[t] / first_close × 100
+```
+
+عندما يبدأ كل رمز من 100 يصبح مسار نموه قابلًا للمقارنة، مهما اختلف سعره الاسمي. هذا مؤشر للمقارنة وليس رصيد حساب حقيقي بعد الضرائب والتكاليف.
+
+### فرق العائد — Excess return
+
+```text
+benchmark_return = 102 / 100 - 1 = 2%
+excess_return = -1% - 2% = -3 percentage points
+```
+
+الواجهة تعرض `-3.00 pp`: أي أن السهم أقل من المرجع بثلاث **نقاط مئوية**. هذا فرق حسابي في العائد، ولا يعد عائدًا معدّلًا بالمخاطر أو مقياسًا للمهارة الاستثمارية.
+
+### التراجع من القمة — Drawdown
+
+```text
+running_peak[t] = highest close from the start through t
+drawdown[t] = close[t] / running_peak[t] - 1
+max_drawdown = minimum drawdown
+```
+
+في المثال تصبح القمة 110، ثم ينخفض السعر إلى 99:
+
+```text
+99 / 110 - 1 = -10%
+```
+
+العائد النهائي `-1%`، لكن أشد تراجع `-10%`. اختلاف الرقمين طبيعي: كل منهما يجيب عن سؤال مختلف. القياس يبدأ من أول يوم مشترك ويستخدم الإغلاق اليومي؛ لا يرى القمم السابقة للفترة أو الخسائر داخل جلسة التداول.
+
+### التقلب السنوي — Annualized volatility
+
+```text
+daily_return[t] = close[t] / close[t-1] - 1
+annualized_volatility = sample_stdev(daily_returns) × sqrt(252)
+```
+
+نستخدم الانحراف المعياري **للعينة**، الذي يقسم التباين على `n - 1`. في المثال العائدان هما `0.10` و`-0.10`:
+
+```text
+mean = 0
+sample_stdev = sqrt((0.10² + (-0.10)²) / (2 - 1))
+            = sqrt(0.02)
+annualized_volatility = sqrt(0.02) × sqrt(252)
+                     ≈ 2.245 = 224.50%
+```
+
+العدد 252 افتراض تحويلي لعدد جلسات السنة، وليس عدد الأيام الفعلي في كل سنة أو توقعًا للمستقبل. هذه المعادلة تصف التشتت ولا تحدد اتجاه السعر. يحذّر المشروع إذا كان عدد العوائد أقل من 60.
+
+<a id="quality"></a>
+## 7. جودة البيانات جزء من الحساب
+
+قبل حساب أي نتيجة، يراجع المحرك البيانات:
+
+- التواريخ بصيغة `YYYY-MM-DD` صحيحة وغير مكررة؛ ثم يرتبها.
+- الأسعار موجبة ومحدودة؛ يرفض الصفر والسالب و`NaN` و`Infinity`.
+- توجد ثلاثة أسعار مشتركة على الأقل، لتكوين عائدين على الأقل.
+- لا توجد جلسة مرجعية مفقودة داخل تاريخ سهم؛ ويُراجع المرجع أيضًا مقابل جلسات الأسهم في الفترة المشتركة.
+- لا تُملأ الأسعار الناقصة بالسعر السابق.
+
+**مثال على تقصير الفترة:** إذا بدأ تاريخ سهم في يونيو، بينما بدأ المرجع في يناير، تبدأ المقارنة المشتركة من يونيو. تعرض الواجهة الفترة الفعلية وتحذيرات استبعاد المشاهدات عند حدوثه.
+
+**مثال على فجوة داخلية:** وجود سعر الاثنين والأربعاء مع فقدان جلسة الثلاثاء قد يجعل تغير يومين يبدو عائد يوم واحد. لذلك ترفض الحسابات هذه الفجوة عند ظهورها في السلاسل المقارنة.
+
+القارئ يحذّر إذا كان أول سعر بعد البداية المطلوبة بأكثر من سبعة أيام تقويمية، أو آخر سعر قبل النهاية المطلوبة بأكثر من سبعة أيام. هذا فحص تقريبي؛ لا يستخدم تقويم بورصة مستقلًا. وإذا غاب يوم من جميع السلاسل فلن يستطيع اكتشافه بهذه المقارنة وحدها.
+
+<a id="files"></a>
+## 8. خريطة المشروع وترتيب التعلم
+
+| اقرأ بالترتيب | مسؤولية الملف |
+|---|---|
+| [examples/learn_metrics.py](examples/learn_metrics.py) | تجربة افتراضية صغيرة تستدعي الحسابات وتطبع النتائج |
+| [analytics.py](analytics.py) | التحقق من الأسعار وتوحيد التواريخ وحساب المقاييس |
+| [tests/test_analytics.py](tests/test_analytics.py) | مقارنة النتائج بأرقام معروفة واختبار البيانات غير الصالحة |
+| [tests/test_benchmark_gaps.py](tests/test_benchmark_gaps.py) | حالة انحدار تكشف تاريخًا مفقودًا من المرجع |
+| [provider.py](provider.py) | التحقق من مدخلات المستخدم وقراءة Norgate |
+| [app.py](app.py) | مسارات HTTP المحلية واستجابات JSON وخدمة الملفات |
+| [static/index.html](static/index.html) | عناصر الواجهة ومدخلاتها |
+| [static/app.js](static/app.js) | إرسال الطلبات وتنسيق القيم ورسم SVG |
+| [static/style.css](static/style.css) | تنسيق الصفحة وتكييفها مع عرض الشاشة |
+| [requirements.lock.txt](requirements.lock.txt) | الإصدارات المثبتة للمكتبات |
+| [.github/workflows/checks.yml](.github/workflows/checks.yml) | الفحوص الآلية على GitHub |
+
+مسارات الخادم:
+
+| المسار | الغرض |
+|---|---|
+| `/` | صفحة المشروع |
+| `/api/status` | التحقق من اتصال Norgate وتوافر قاعدة الأسهم الأمريكية؛ لا يثبت حداثة كل رمز |
+| `/api/analyze` | قراءة `symbols` و`benchmark` و`start` و`end` وإرجاع المقارنة |
+
+المشروع يستخدم مكتبة Python القياسية للخادم والحسابات، وJavaScript مباشرة للواجهة. لا يوجد نموذج ذكاء اصطناعي داخل التطبيق، ولا حاجة إلى مفتاح خدمة ذكاء اصطناعي. استُخدمت وكلاء مساعدة أثناء التطوير للبحث والحسابات والمراجعة.
+
+<a id="exercises"></a>
+## 9. تمارين قصيرة مع إجابات متوقعة
+
+نفّذ التعديلات داخل نسخة محلية من الدرس الافتراضي، مع إبقاء المقارنة الفعلية مستقلة.
+
+### تمرين 1: غيّر المسار
+
+غيّر أسعار `LESSON_STOCK` إلى `100, 90, 108` ثم شغّل الدرس.
+
+<details>
+<summary>النتيجة المتوقعة ولماذا</summary>
+
+العائد الكلي `+8%`، والعائدان اليوميان `-10%` ثم `+20%`. أقصى تراجع يبقى `-10%`، وفرق العائد عن المرجع ذي العائد `+2%` يساوي `+6 pp`. لاحظ أن التعافي من انخفاض 10% يحتاج إلى ارتفاع يزيد على 10%.
+
+</details>
+
+### تمرين 2: غيّر وحدة السعر
+
+اضرب أسعار السهم الأصلية كلها في 10، لتصبح `1000, 1100, 990`.
+
+<details>
+<summary>النتيجة المتوقعة ولماذا</summary>
+
+العائد والتقلب والتراجع وفرق العائد والنمو من 100 لا تتغير؛ تعتمد على نسب الأسعار لا مستوياتها الاسمية. يتغير الإغلاق المعدل الأخير داخل نتيجة المحرك فقط.
+
+</details>
+
+### تمرين 3: اكتشف مدخلًا غير صالح
+
+اجعل السعر الثاني صفرًا، أو كرر تاريخ اليوم الأول.
+
+<details>
+<summary>النتيجة المتوقعة ولماذا</summary>
+
+يرفض المحرك الإدخال برسالة خطأ بدل إصدار أرقام مضللة. شغّل أيضًا اختبار فجوة المرجع أدناه لترى مثالًا على منع حساب عائد متعدد الجلسات باعتباره يوميًا.
+
+```powershell
+python -m unittest discover -s tests -p test_benchmark_gaps.py -v
+```
+
+</details>
+
+### تمرين 4: اكتب تفسيرًا منضبطًا
+
+اكتب جملتين عن نتيجة السهم الأصلي، إحداهما تصف المشاهدات والأخرى حدودها.
+
+<details>
+<summary>مثال إجابة</summary>
+
+«في البيانات الافتراضية انخفضت القيمة من 100 إلى 99، وتراجعت 10% من قمتها داخل الفترة. عينة العائدين قصيرة جدًا ولا تصلح لاستنتاج أداء مستقبلي أو ربحية استراتيجية.»
+
+</details>
+
+<a id="validation"></a>
+## 10. كيف نتحقق من صحة المشروع؟
+
+لتشغيل اختبارات الحسابات فقط، دون Norgate أو مكتبات خارجية:
+
+```powershell
+python -m unittest discover -s tests -p "test_analytics.py" -v
+python -m unittest discover -s tests -p "test_benchmark_gaps.py" -v
+```
+
+بعد تثبيت الاعتماديات، شغّل المجموعة الكاملة:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+تتضمن المجموعة 16 اختبارًا للحسابات وقارئ البيانات والطلبات والوصول إلى الملفات. تستخدم بيانات افتراضية وبدائل اختبارية، ولا تحتاج اشتراك Norgate فعالًا لتشغيلها. توجد اختبارات القارئ والخادم في [test_provider.py](tests/test_provider.py) و[test_server.py](tests/test_server.py).
+
+فحص صياغة JavaScript يحتاج Node.js فقط عند التطوير:
+
+```powershell
 node --check static/app.js
 ```
 
-Tests use small synthetic fixtures, not licensed data. CI can run the Python suite without Norgate installed or signed in. Node is needed only for the optional JavaScript syntax check, not to run the dashboard.
+تشغّل [GitHub Actions](https://github.com/Abdulrahman-S-Asiri/stock-research-desk/actions) الدرس التعليمي قبل تثبيت المكتبات، ثم الفحوص تلقائيًا عند رفع تغييرات أو فتح طلب دمج. نجاحها دليل على اجتياز الحالات المختبرة، وليس إثباتًا لربحية مالية أو خلو البرنامج من كل خطأ.
 
-The project has four simple parts: `provider.py` reads Norgate, `analytics.py` computes metrics, `app.py` serves the local interface, and `static/` contains the browser UI. Separate agents researched the API, implemented/tested analytics, and independently reviewed the project. Relevant coding and browser skills were used; unrelated plugins were deliberately excluded.
+### حدود البحث المالي
 
-The source is publicly viewable; no open-source license is granted. Norgate data and subscription access are not included. Runtime files, dependencies, logs, credentials, and market-data exports are excluded from Git. Development verification logs are kept outside the repository.
+- المقاييس تصف الرموز التي اخترتها والفترة المعروضة، دون اختبار قاعدة شراء أو بيع.
+- اختيار شركات ناجحة اليوم قد يؤدي إلى تحيز الاختيار والبقاء. إمكان إدخال رمز مشطوب لا يبني تلقائيًا عينة تاريخية سليمة.
+- لا توجد معالجة لعضوية المؤشرات عبر الزمن، أو تقسيم تدريب واختبار، أو اختبار خارج العينة.
+- لا توجد محفظة بأوزان أو إعادة توازن أو محاكاة أوامر أو تكاليف تنفيذ وضرائب.
+- التقلب ليس كل أنواع المخاطر، والعائد الأعلى وحده لا يحدد الاستثمار الأفضل.
+
+مسار التعلم التالي المقترح: افهم البيانات والحسابات أولًا، ثم صغ فرضية قابلة للدحض. بناء اختبار استراتيجية لاحقًا يحتاج قواعد واضحة وتكاليف واقعية وبيانات خارج العينة؛ هذه إمكانات مستقبلية وليست موجودة حاليًا.
+
+<a id="support"></a>
+## 11. حل المشكلات الشائعة
+
+| ما يظهر | ما الذي تتحقق منه؟ |
+|---|---|
+| `python` غير معروف | ثبّت Python وتأكد من إتاحته في PATH، ثم افتح طرفية جديدة |
+| Norgate يحتاج انتباهًا | افتح برنامج التحديث وتحقق من اتصالك وتوافر قاعدة الأسهم الأمريكية |
+| الرمز غير موجود | راجع الرمز في قاعدة Norgate واشتراكك؛ قارئ المشروع يبحث في الأسهم الأمريكية الحالية والمشطوبة المتاحة |
+| تواريخ أقل من المطلوبة | اقرأ البداية والنهاية الفعليتين؛ ربما التاريخ غير متاح أو بدأ إدراج السهم لاحقًا |
+| أقل من ثلاثة تواريخ مشتركة | وسّع الفترة أو اختر رموزًا تتقاطع تواريخها؛ زيادة الفترة لا تضمن توافر البيانات |
+| جلسة مفقودة | راجع السلسلة والتحديث والتوقفات المحتملة؛ لا تتجاوز المشكلة بملء السعر عشوائيًا |
+| المنفذ مشغول | استخدم `--port 8766` وافتح عنوانه كما في قسم التشغيل |
+| منع ملفات PowerShell | استخدم أوامر Python المباشرة في قسم التشغيل |
+
+## 12. البيانات والخصوصية والترخيص
+
+الخادم مرتبط بواجهة الجهاز المحلية `127.0.0.1`، مع فحص المضيف والأصل المسموحين. يخدم ملفات واجهة محددة بدل كشف مجلد المشروع. هذه بنية للاستخدام المحلي وليست إعدادًا لخدمة عامة على الإنترنت.
+
+التطبيق لا يحفظ صفوف الأسعار في ملفات أو تخزين المتصفح، ويحدد استجابات HTTP بأنها `no-store`. لا تتضمن الواجهة خدمات رسوم أو خطوطًا أو أدوات تتبع خارجية. قاعدة Norgate الأصلية وبرنامج التحديث يظلان مستقلين عن المشروع.
+
+ملف [.gitignore](.gitignore) يستبعد البيئة المحلية وملفات التشغيل والسجلات وبعض امتدادات بيانات التصدير. الاستبعاد لا يحمي أي بيانات تضيفها باسم آخر؛ راجع ما ستنشره دائمًا. لا يتضمن المستودع بيانات Norgate أو اشتراكًا أو بيانات دخول.
+
+المصدر متاح للمشاهدة العامة، ولم يُضف له ترخيص مفتوح المصدر. راجع [اتفاقية Norgate](https://norgatedata.com/subscribe/eula.php) لشروط استخدام بياناتك.
+
+## مراجع للتوسع
+
+- [واجهة Python الرسمية التي تنشرها Norgate](https://pypi.org/project/norgatedata/) — إعداد الاتصال وخيارات قراءة البيانات.
+- [شرح Norgate لمحتوى البيانات والتعديلات](https://norgatedata.com/data-package-faq.php) — فهم المصدر قبل تفسير الأرقام.
+- [الكود الحسابي](analytics.py) — المرجع المباشر لما يحسبه هذا المشروع بالفعل.
+- [الاختبارات](tests/) — أمثلة قابلة للتنفيذ للتحقق من السلوك.
